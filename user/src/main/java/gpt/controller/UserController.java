@@ -22,15 +22,21 @@ public class UserController {
     @Autowired
     private UserService userService;
 
+    // @GetMapping("/kakaoAuth")
+    // public Mono<ResponseEntity<?>> kakaoAuth() {
+    //     return userService.kakaoAuth()
+    //             .map(url -> ResponseEntity.ok().body(url)); // 카카오 인증 URL을 클라이언트에게 전달
+    // }
+
     @GetMapping("/kakaoAuth")
     public Mono<ResponseEntity<?>> kakaoAuth() {
         return userService.kakaoAuth()
-                .map(url -> ResponseEntity.ok().body(url)); // 카카오 인증 URL을 클라이언트에게 전달
+            .map(url -> ResponseEntity.ok(url));
+            
     }
 
     @GetMapping("/kakaoLogin")
     public Mono<String> kakaoLogin(@RequestParam String code) {
-        System.out.println("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa: " + code);
         return userService.kakaoLogin(code);
     }
 
