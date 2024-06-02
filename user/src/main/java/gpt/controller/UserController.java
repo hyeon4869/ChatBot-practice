@@ -40,6 +40,5 @@ public class UserController {
         return userService.kakaoLogin(code);
     }
 
-  
 }
 // >>> Clean Arch / Inbound Adaptor
