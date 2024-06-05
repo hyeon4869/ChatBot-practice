@@ -1,7 +1,5 @@
 package gpt.service;
 
-import java.util.UUID;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -49,27 +47,24 @@ public class UserService {
 
     }
 
-    public Mono<String> kakaoLogout() {
-        return Mono.defer(()-> {
-            //defer 새로운 인스턴스를 생성
-            //fromcallable 은 사용하지 않는다 -> webClient를 사용하였기 때문에 비동기적으로 이미 실행하는 것이라 fromCallable을 사용할 필요가 없음
-            String logoutUrl = BASE_URL + "oauth/logout";
-            String state = UUID.randomUUID().toString();
-
+    public Mono<String> kakaoLogout(String access_token) {
+  
+        return Mono.defer(() -> {
             return webClient.get()
-            .uri(uriBuilder -> uriBuilder
-                    .path(logoutUrl)
-                    .queryParam("client_id", CLIENT_ID)
-                    .queryParam("logout_redirect_uri", LOGOUT_RE_URI)
-                    .queryParam("state", state)
-                    .build())
-            .retrieve()
-            .bodyToMono(String.class)
-            .onErrorResume(e -> {
-                return Mono.error(new IllegalStateException("로그아웃 도중 오류가 발생하였습니다."));
-
-            });
+                .uri(uriBuilder -> uriBuilder
+                        .scheme("https")
+                        .host("kauth.kakao.com")
+                        .path("/oauth/logout")
+                        .queryParam("client_id", CLIENT_ID)
+                        .queryParam("logout_redirect_uri", LOGOUT_RE_URI)
+                        .build())
+                .header("Authorization", "Bearer " + access_token)
+                .retrieve()
+                .bodyToMono(String.class)
+                .onErrorResume(e -> {
+                    // 로그아웃 실패 시 처리
+                    return Mono.error(new IllegalStateException("로그아웃 도중 오류가 발생하였습니다."));
+                });
         });
-        
     }
 }

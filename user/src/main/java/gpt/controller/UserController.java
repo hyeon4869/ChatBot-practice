@@ -34,6 +34,13 @@ public class UserController {
         return userService.kakaoLogin(code);
     }
 
+
+    @GetMapping("/kakaoLogout")
+    public Mono<String> kakaoLogout(@RequestParam("access_token") String accessToken) {
+        System.out.println("여기서부터 시작");
+        System.out.println(accessToken);
+        return userService.kakaoLogout(accessToken);
+    }
   
 }
 // >>> Clean Arch / Inbound Adaptor
