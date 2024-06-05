@@ -21,7 +21,7 @@ public class UserService {
     private static final String BASE_URL = "https://kauth.kakao.com";
     private static final String CLIENT_ID = "81e0765db461031e29617a607d03d786"; // 실제 REST API 키로 대체하세요
     private static final String REDIRECT_URI = "http://localhost:8082/users/kakaoLogin"; // 실제 리디렉션 URI로 대체하세요
-
+    private static final String LOGOUT_RE_URI = "http://localhost:8082/users/kakaoLogout";
     @Autowired
     private WebClient webClient;
 
@@ -81,4 +81,24 @@ public class UserService {
         });
     }
 
+    public Mono<String> kakaoLogout(String access_token) {
+  
+        return Mono.defer(() -> {
+            return webClient.get()
+                .uri(uriBuilder -> uriBuilder
+                        .scheme("https")
+                        .host("kauth.kakao.com")
+                        .path("/oauth/logout")
+                        .queryParam("client_id", CLIENT_ID)
+                        .queryParam("logout_redirect_uri", LOGOUT_RE_URI)
+                        .build())
+                .header("Authorization", "Bearer " + access_token)
+                .retrieve()
+                .bodyToMono(String.class)
+                .onErrorResume(e -> {
+                    // 로그아웃 실패 시 처리
+                    return Mono.error(new IllegalStateException("로그아웃 도중 오류가 발생하였습니다."));
+                });
+        });
+    }
 }

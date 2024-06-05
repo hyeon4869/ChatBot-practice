@@ -22,12 +22,6 @@ public class UserController {
     @Autowired
     private UserService userService;
 
-    // @GetMapping("/kakaoAuth")
-    // public Mono<ResponseEntity<?>> kakaoAuth() {
-    //     return userService.kakaoAuth()
-    //             .map(url -> ResponseEntity.ok().body(url)); // 카카오 인증 URL을 클라이언트에게 전달
-    // }
-
     @GetMapping("/kakaoAuth")
     public Mono<ResponseEntity<?>> kakaoAuth() {
         return userService.kakaoAuth()
@@ -40,5 +34,13 @@ public class UserController {
         return userService.kakaoLogin(code);
     }
 
+
+    @GetMapping("/kakaoLogout")
+    public Mono<String> kakaoLogout(@RequestParam("access_token") String accessToken) {
+        System.out.println("여기서부터 시작");
+        System.out.println(accessToken);
+        return userService.kakaoLogout(accessToken);
+    }
+  
 }
 // >>> Clean Arch / Inbound Adaptor
