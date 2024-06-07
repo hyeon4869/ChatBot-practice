@@ -10,6 +10,8 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.reactive.function.client.WebClient;
 
 import gpt.config.RetryConfig.RetryExhaustedException;
+import gpt.domain.User;
+import gpt.dto.ResponseToken;
 import reactor.core.publisher.Mono;
 import reactor.util.retry.Retry;
 
@@ -31,6 +33,7 @@ public class UserService {
     // @Autowired
     // private RetryConfig retryConfig;
 
+    //카카오톡 인증
     public Mono<String> kakaoAuth() {
         return Mono.defer(() -> Mono.fromCallable(() -> {
 
@@ -42,7 +45,7 @@ public class UserService {
                     BASE_URL, CLIENT_ID, REDIRECT_URI, state);
 
             // 보안상의 이유로 debug 레벨로 로깅을 변경
-            logger.debug("카카오 인증 URL: " + authorizeUrl);
+            logger.info("카카오 인증 URL: " + authorizeUrl);
 
             // 카카오 인증 URL을 반환. 사용자는 이 URL을 통해 카카오 로그인 페이지로 리다이렉트 됨.
             return authorizeUrl;
@@ -53,7 +56,14 @@ public class UserService {
         }));
     }
 
-    public Mono<String> kakaoLogin(String code) {
+    // //카카오톡 로그인 
+    public Mono<User> kakaoLogin(String code){
+        return getToken(code)
+            .map(User :: toEntity);//User 클래스의 toEntity를 실행, db저장은 동기적으로 이루어지기 때문에 map을 사용
+    }
+
+    //토큰 얻기
+    public Mono<ResponseToken> getToken(String code) {
         return Mono.defer(() -> {
 
             String tokenUrl = BASE_URL + "/oauth/token";
@@ -64,7 +74,7 @@ public class UserService {
                             CLIENT_ID, REDIRECT_URI, code))
                     .header("Content-Type", "application/x-www-form-urlencoded;charset=utf-8")
                     .retrieve()
-                    .bodyToMono(String.class)
+                    .bodyToMono(ResponseToken.class)
                     .retryWhen(retryConfig)
                     .doOnSuccess(token -> logger.info("Kakao token: " + token))
                     .doOnError(error -> logger.error("Failed to request Kakao token", error))// 에러 로그를 남기기
