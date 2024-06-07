@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import gpt.domain.User;
 import gpt.service.UserService;
 import reactor.core.publisher.Mono;
 
@@ -23,17 +24,16 @@ public class UserController {
     private UserService userService;
 
     @GetMapping("/kakaoAuth")
-    public Mono<ResponseEntity<?>> kakaoAuth() {
+    public Mono<ResponseEntity<String>> kakaoAuth() {
         return userService.kakaoAuth()
-            .map(url -> ResponseEntity.ok(url));
-            
+                .map(url -> ResponseEntity.ok().body(url)); // 카카오 인증 URL을 클라이언트에게 전달
+
     }
 
     @GetMapping("/kakaoLogin")
-    public Mono<String> kakaoLogin(@RequestParam String code) {
-        return userService.kakaoLogin(code);
+    public Mono<User> kakaoLogin(@RequestParam String code) {
+    return userService.kakaoLogin(code);
     }
-
 
     @GetMapping("/kakaoLogout")
     public Mono<String> kakaoLogout(@RequestParam("access_token") String accessToken) {
@@ -41,6 +41,6 @@ public class UserController {
         System.out.println(accessToken);
         return userService.kakaoLogout(accessToken);
     }
-  
+
 }
 // >>> Clean Arch / Inbound Adaptor
