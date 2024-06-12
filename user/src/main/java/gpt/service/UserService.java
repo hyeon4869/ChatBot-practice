@@ -10,7 +10,6 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.reactive.function.client.WebClient;
 
 import gpt.config.RetryConfig.RetryExhaustedException;
-import gpt.domain.User;
 import gpt.dto.ResponseToken;
 import reactor.core.publisher.Mono;
 import reactor.util.retry.Retry;
@@ -57,17 +56,18 @@ public class UserService {
     }
 
     // //카카오톡 로그인 
-    public Mono<User> kakaoLogin(String code){
-        return getToken(code)
-            .map(User :: toEntity);//User 클래스의 toEntity를 실행, db저장은 동기적으로 이루어지기 때문에 map을 사용
-    }
+    // //HttpSesrvletResponse, ServerHttpResponse 의 차이 
+    // public Mono<User> kakaoLogin(String code, ServerHttpResponse response) {
+    //             return getToken(code)
+    //                 .doOnNext(token -> response.getHeaders().get(token.getAccess_token()))//반환타입이 void일 떄 적합하며 동기적, 주로 로그, 상태 업데이트, http헤더 설정할 때 사용
+    //                 .map(token -> User.toEntity(token));
+    //         };
+    
 
     //토큰 얻기
     public Mono<ResponseToken> getToken(String code) {
         return Mono.defer(() -> {
-
             String tokenUrl = BASE_URL + "/oauth/token";
-
             return webClient.post()
                     .uri(tokenUrl)
                     .bodyValue(String.format("grant_type=authorization_code&client_id=%s&redirect_uri=%s&code=%s",
@@ -76,39 +76,38 @@ public class UserService {
                     .retrieve()
                     .bodyToMono(ResponseToken.class)
                     .retryWhen(retryConfig)
-                    .doOnSuccess(token -> logger.info("Kakao token: " + token))
-                    .doOnError(error -> logger.error("Failed to request Kakao token", error))// 에러 로그를 남기기
+                    .doOnError(error -> logger.error("Failed to request Kakao token", error)) // 에러 로그를 남기기
                     .onErrorResume(e -> {
-                        if (e instanceof RetryExhaustedException) {// 에러 발생 후 추후 실행할 로직
+                        if (e instanceof RetryExhaustedException) {
                             // 재시도 횟수 초과
-                            return Mono.error(
-                                    new IllegalStateException("네트워크 오류로 인해 카카오 로그인을 완료할 수 없습니다. 잠시 후에 다시 시도해주세요", e));
-
+                            return Mono.error(new IllegalStateException("네트워크 오류로 인해 카카오 로그인을 완료할 수 없습니다. 잠시 후에 다시 시도해주세요", e));
                         } else {
                             return Mono.error(new IllegalStateException("카카오 로그인 중 오류가 발생했습니다. 잠시 후에 다시 시도해주세요", e));
                         }
                     });
         });
     }
-
     public Mono<String> kakaoLogout(String access_token) {
-  
+        logger.info("카카오 로그아웃 요청 시작: access_token = {}", access_token);
+
         return Mono.defer(() -> {
-            return webClient.get()
+            return webClient.post()
                 .uri(uriBuilder -> uriBuilder
                         .scheme("https")
-                        .host("kauth.kakao.com")
-                        .path("/oauth/logout")
-                        .queryParam("client_id", CLIENT_ID)
-                        .queryParam("logout_redirect_uri", LOGOUT_RE_URI)
+                        .host("kapi.kakao.com")
+                        .path("/v1/user/logout")
                         .build())
                 .header("Authorization", "Bearer " + access_token)
+                .header("Content-Type", "application/x-www-form-urlencoded")
                 .retrieve()
                 .bodyToMono(String.class)
+                .doOnNext(response -> logger.info("카카오 로그아웃 성공: 응답 = {}", response))
+                .doOnError(error -> logger.error("카카오 로그아웃 실패: 에러 = {}", error.getMessage()))
                 .onErrorResume(e -> {
-                    // 로그아웃 실패 시 처리
-                    return Mono.error(new IllegalStateException("로그아웃 도중 오류가 발생하였습니다."));
+                    logger.error("로그아웃 도중 오류 발생", e);
+                    return Mono.error(new IllegalStateException("로그아웃 도중 오류가 발생하였습니다.", e));
                 });
         });
     }
+
 }

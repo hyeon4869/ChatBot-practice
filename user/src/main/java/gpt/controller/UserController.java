@@ -3,8 +3,10 @@ package gpt.controller;
 import javax.transaction.Transactional;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -31,12 +33,19 @@ public class UserController {
     }
 
     @GetMapping("/kakaoLogin")
-    public Mono<User> kakaoLogin(@RequestParam String code) {
-    return userService.kakaoLogin(code);
+    public Mono<ResponseEntity<User>> kakaoLogin(@RequestParam String code) {
+        return userService.getToken(code)
+            .map(token -> {
+                User user = User.toEntity(token);
+                HttpHeaders headers = new HttpHeaders();
+                headers.setBearerAuth(token.getAccess_token());
+                return ResponseEntity.ok().headers(headers).body(user);
+            });
     }
 
+
     @GetMapping("/kakaoLogout")
-    public Mono<String> kakaoLogout(@RequestParam("access_token") String accessToken) {
+    public Mono<String> kakaoLogout(@RequestHeader("Authorization") String accessToken) {//헤더의 값을 읽기 때문에 requestHeader 사용
         System.out.println("여기서부터 시작");
         System.out.println(accessToken);
         return userService.kakaoLogout(accessToken);
