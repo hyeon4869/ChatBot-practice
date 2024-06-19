@@ -87,7 +87,7 @@ public class UserService {
                     });
         });
     }
-    public Mono<String> kakaoLogout(String access_token) {
+        public Mono<String> kakaoLogout(String access_token) {
         logger.info("카카오 로그아웃 요청 시작: access_token = {}", access_token);
 
         return Mono.defer(() -> {
